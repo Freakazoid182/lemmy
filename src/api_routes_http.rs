@@ -117,6 +117,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
       .service(
         web::scope("/site")
           .wrap(rate_limit.message())
+          .route("", web::head().to(get_site))
           .route("", web::get().to(get_site))
           // Admin Actions
           .route("", web::post().to(create_site))
@@ -125,16 +126,19 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
       .service(
         web::resource("/modlog")
           .wrap(rate_limit.message())
+          .route(web::head().to(route_get::<GetModlog>))
           .route(web::get().to(route_get::<GetModlog>)),
       )
       .service(
         web::resource("/search")
           .wrap(rate_limit.search())
+          .route(web::head().to(search))
           .route(web::get().to(search)),
       )
       .service(
         web::resource("/resolve_object")
           .wrap(rate_limit.message())
+          .route(web::head().to(resolve_object))
           .route(web::get().to(resolve_object)),
       )
       // Community
@@ -147,9 +151,11 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
       .service(
         web::scope("/community")
           .wrap(rate_limit.message())
+          .route("", web::head().to(get_community))
           .route("", web::get().to(get_community))
           .route("", web::put().to(update_community))
           .route("/hide", web::put().to(hide_community))
+          .route("/list", web::head().to(list_communities))
           .route("/list", web::get().to(list_communities))
           .route("/follow", web::post().to(follow_community))
           .route("/block", web::post().to(block_community))
@@ -163,6 +169,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
       .service(
         web::scope("/federated_instances")
           .wrap(rate_limit.message())
+          .route("", web::head().to(route_get::<GetFederatedInstances>))
           .route("", web::get().to(route_get::<GetFederatedInstances>)),
       )
       // Post
@@ -176,6 +183,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
       .service(
         web::scope("/post")
           .wrap(rate_limit.message())
+          .route("", web::head().to(get_post))
           .route("", web::get().to(get_post))
           .route("", web::put().to(update_post))
           .route("/delete", web::post().to(delete_post))
@@ -186,6 +194,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           )
           .route("/lock", web::post().to(lock_post))
           .route("/feature", web::post().to(feature_post))
+          .route("/list", web::head().to(list_posts))
           .route("/list", web::get().to(list_posts))
           .route("/like", web::post().to(like_post))
           .route("/save", web::put().to(route_post::<SavePost>))
@@ -194,7 +203,12 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
             "/report/resolve",
             web::put().to(route_post::<ResolvePostReport>),
           )
+          .route("/report/list", web::head().to(route_get::<ListPostReports>))
           .route("/report/list", web::get().to(route_get::<ListPostReports>))
+          .route(
+            "/site_metadata",
+            web::head().to(route_get::<GetSiteMetadata>),
+          )
           .route(
             "/site_metadata",
             web::get().to(route_get::<GetSiteMetadata>),
@@ -211,6 +225,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
       .service(
         web::scope("/comment")
           .wrap(rate_limit.message())
+          .route("", web::head().to(get_comment))
           .route("", web::get().to(get_comment))
           .route("", web::put().to(update_comment))
           .route("/delete", web::post().to(delete_comment))
@@ -219,15 +234,18 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/distinguish", web::post().to(distinguish_comment))
           .route("/like", web::post().to(like_comment))
           .route("/save", web::put().to(save_comment))
+          .route("/list", web::head().to(list_comments))
           .route("/list", web::get().to(list_comments))
           .route("/report", web::post().to(create_comment_report))
           .route("/report/resolve", web::put().to(resolve_comment_report))
+          .route("/report/list", web::head().to(list_comment_reports))
           .route("/report/list", web::get().to(list_comment_reports)),
       )
       // Private Message
       .service(
         web::scope("/private_message")
           .wrap(rate_limit.message())
+          .route("/list", web::head().to(get_private_message))
           .route("/list", web::get().to(get_private_message))
           .route("", web::post().to(create_private_message))
           .route("", web::put().to(update_private_message))
@@ -243,6 +261,10 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route(
             "/report/resolve",
             web::put().to(route_post::<ResolvePrivateMessageReport>),
+          )
+          .route(
+            "/report/list",
+            web::head().to(route_get::<ListPrivateMessageReports>),
           )
           .route(
             "/report/list",
@@ -262,21 +284,26 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
         // Handle captcha separately
         web::resource("/user/get_captcha")
           .wrap(rate_limit.post())
+          .route(web::head().to(route_get::<GetCaptcha>))
           .route(web::get().to(route_get::<GetCaptcha>)),
       )
       // User actions
       .service(
         web::scope("/user")
           .wrap(rate_limit.message())
+          .route("", web::head().to(read_person))
           .route("", web::get().to(read_person))
+          .route("/mention", web::head().to(route_get::<GetPersonMentions>))
           .route("/mention", web::get().to(route_get::<GetPersonMentions>))
           .route(
             "/mention/mark_as_read",
             web::post().to(route_post::<MarkPersonMentionAsRead>),
           )
+          .route("/replies", web::head().to(route_get::<GetReplies>))
           .route("/replies", web::get().to(route_get::<GetReplies>))
           // Admin action. I don't like that it's in /user
           .route("/ban", web::post().to(ban_from_site))
+          .route("/banned", web::head().to(route_get::<GetBannedPersons>))
           .route("/banned", web::get().to(route_get::<GetBannedPersons>))
           .route("/block", web::post().to(route_post::<BlockPerson>))
           // Account actions. I don't like that they're in /user maybe /accounts
@@ -303,7 +330,9 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
             "/change_password",
             web::put().to(route_post::<ChangePassword>),
           )
+          .route("/report_count", web::head().to(route_get::<GetReportCount>))
           .route("/report_count", web::get().to(route_get::<GetReportCount>))
+          .route("/unread_count", web::head().to(route_get::<GetUnreadCount>))
           .route("/unread_count", web::get().to(route_get::<GetUnreadCount>))
           .route("/verify_email", web::post().to(route_post::<VerifyEmail>))
           .route("/leave_admin", web::post().to(route_post::<LeaveAdmin>)),
@@ -315,7 +344,15 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/add", web::post().to(route_post::<AddAdmin>))
           .route(
             "/registration_application/count",
+            web::head().to(route_get::<GetUnreadRegistrationApplicationCount>),
+          )
+          .route(
+            "/registration_application/count",
             web::get().to(route_get::<GetUnreadRegistrationApplicationCount>),
+          )
+          .route(
+            "/registration_application/list",
+            web::head().to(route_get::<ListRegistrationApplications>),
           )
           .route(
             "/registration_application/list",
@@ -344,6 +381,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
   cfg.service(
     web::scope("/sitemap.xml")
       .wrap(rate_limit.message())
+      .route("", web::head().to(get_sitemap))
       .route("", web::get().to(get_sitemap)),
   );
 }
